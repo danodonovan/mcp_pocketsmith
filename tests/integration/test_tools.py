@@ -15,6 +15,7 @@ def _mock_config(**overrides):
         "api_timeout": 30.0,
         "max_retries": 3,
         "rate_limit_per_minute": 60,
+        "read_only": False,
     }
     defaults.update(overrides)
     return MagicMock(**defaults)
