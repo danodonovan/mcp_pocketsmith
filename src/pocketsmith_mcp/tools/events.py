@@ -13,7 +13,9 @@ from pocketsmith_mcp.user_context import UserContext
 logger = get_logger("tools.events")
 
 
-def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserContext) -> None:
+def register_event_tools(
+    mcp: FastMCP, client: PocketSmithClient, user_ctx: UserContext, read_only: bool = False
+) -> None:
     """Register event-related MCP tools."""
 
     @mcp.tool()
@@ -67,134 +69,136 @@ def register_event_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: User
             logger.error(f"get_event failed: {e}")
             raise ValueError(f"Failed to get event {event_id}: {e}")
 
-    @mcp.tool()
-    async def create_event(
-        scenario_id: int,
-        category_id: int,
-        amount: float,
-        date: str,
-        repeat_type: str = "once",
-        repeat_interval: int = 1,
-        note: str | None = None,
-        colour: str | None = None,
-    ) -> str:
-        """
-        Create a new budget event.
+    if not read_only:
 
-        Events are used for forecasting and budgeting. They can be
-        one-time or recurring (daily, weekly, monthly, yearly, etc.).
+        @mcp.tool()
+        async def create_event(
+            scenario_id: int,
+            category_id: int,
+            amount: float,
+            date: str,
+            repeat_type: str = "once",
+            repeat_interval: int = 1,
+            note: str | None = None,
+            colour: str | None = None,
+        ) -> str:
+            """
+            Create a new budget event.
 
-        Args:
-            scenario_id: The scenario ID to associate with
-            category_id: The category ID for the event
-            amount: Event amount (negative for expenses)
-            date: Event date (YYYY-MM-DD)
-            repeat_type: Repeat frequency ("once", "daily", "weekly",
-                        "fortnightly", "monthly", "yearly", "each", "once_off")
-            repeat_interval: Interval for repeating (e.g., 2 for every 2 weeks)
-            note: Event note/description
-            colour: Event color (hex, e.g., "#2196F3")
+            Events are used for forecasting and budgeting. They can be
+            one-time or recurring (daily, weekly, monthly, yearly, etc.).
 
-        Returns:
-            JSON object with created event
-        """
-        try:
-            validate_id(scenario_id, "scenario_id")
-            validate_id(category_id, "category_id")
-            body: dict[str, Any] = {
-                "category_id": category_id,
-                "amount": amount,
-                "date": date,
-                "repeat_type": repeat_type,
-                "repeat_interval": repeat_interval,
-            }
-            if note is not None:
-                body["note"] = note
-            if colour is not None:
-                body["colour"] = colour
+            Args:
+                scenario_id: The scenario ID to associate with
+                category_id: The category ID for the event
+                amount: Event amount (negative for expenses)
+                date: Event date (YYYY-MM-DD)
+                repeat_type: Repeat frequency ("once", "daily", "weekly",
+                            "fortnightly", "monthly", "yearly", "each", "once_off")
+                repeat_interval: Interval for repeating (e.g., 2 for every 2 weeks)
+                note: Event note/description
+                colour: Event color (hex, e.g., "#2196F3")
 
-            result = await client.post(f"/scenarios/{scenario_id}/events", json_data=body)
-            return json.dumps(result, indent=2)
-        except Exception as e:
-            logger.error(f"create_event failed: {e}")
-            raise ValueError(f"Failed to create event: {e}")
+            Returns:
+                JSON object with created event
+            """
+            try:
+                validate_id(scenario_id, "scenario_id")
+                validate_id(category_id, "category_id")
+                body: dict[str, Any] = {
+                    "category_id": category_id,
+                    "amount": amount,
+                    "date": date,
+                    "repeat_type": repeat_type,
+                    "repeat_interval": repeat_interval,
+                }
+                if note is not None:
+                    body["note"] = note
+                if colour is not None:
+                    body["colour"] = colour
 
-    @mcp.tool()
-    async def update_event(
-        event_id: int,
-        category_id: int | None = None,
-        amount: float | None = None,
-        date: str | None = None,
-        repeat_type: str | None = None,
-        repeat_interval: int | None = None,
-        note: str | None = None,
-        colour: str | None = None,
-    ) -> str:
-        """
-        Update an event.
+                result = await client.post(f"/scenarios/{scenario_id}/events", json_data=body)
+                return json.dumps(result, indent=2)
+            except Exception as e:
+                logger.error(f"create_event failed: {e}")
+                raise ValueError(f"Failed to create event: {e}")
 
-        Args:
-            event_id: The event ID to update
-            category_id: New category ID
-            amount: New amount
-            date: New date (YYYY-MM-DD)
-            repeat_type: New repeat frequency
-            repeat_interval: New repeat interval
-            note: New note
-            colour: New color
+        @mcp.tool()
+        async def update_event(
+            event_id: int,
+            category_id: int | None = None,
+            amount: float | None = None,
+            date: str | None = None,
+            repeat_type: str | None = None,
+            repeat_interval: int | None = None,
+            note: str | None = None,
+            colour: str | None = None,
+        ) -> str:
+            """
+            Update an event.
 
-        Returns:
-            JSON object with updated event
-        """
-        try:
-            validate_id(event_id, "event_id")
-            body: dict[str, Any] = {}
-            if category_id is not None:
-                body["category_id"] = category_id
-            if amount is not None:
-                body["amount"] = amount
-            if date is not None:
-                body["date"] = date
-            if repeat_type is not None:
-                body["repeat_type"] = repeat_type
-            if repeat_interval is not None:
-                body["repeat_interval"] = repeat_interval
-            if note is not None:
-                body["note"] = note
-            if colour is not None:
-                body["colour"] = colour
+            Args:
+                event_id: The event ID to update
+                category_id: New category ID
+                amount: New amount
+                date: New date (YYYY-MM-DD)
+                repeat_type: New repeat frequency
+                repeat_interval: New repeat interval
+                note: New note
+                colour: New color
 
-            if not body:
-                raise ValueError("At least one field must be provided for update")
+            Returns:
+                JSON object with updated event
+            """
+            try:
+                validate_id(event_id, "event_id")
+                body: dict[str, Any] = {}
+                if category_id is not None:
+                    body["category_id"] = category_id
+                if amount is not None:
+                    body["amount"] = amount
+                if date is not None:
+                    body["date"] = date
+                if repeat_type is not None:
+                    body["repeat_type"] = repeat_type
+                if repeat_interval is not None:
+                    body["repeat_interval"] = repeat_interval
+                if note is not None:
+                    body["note"] = note
+                if colour is not None:
+                    body["colour"] = colour
 
-            result = await client.put(f"/events/{event_id}", json_data=body)
-            return json.dumps(result, indent=2)
-        except Exception as e:
-            logger.error(f"update_event failed: {e}")
-            raise ValueError(f"Failed to update event {event_id}: {e}")
+                if not body:
+                    raise ValueError("At least one field must be provided for update")
 
-    @mcp.tool()
-    async def delete_event(event_id: int) -> str:
-        """
-        Delete an event.
+                result = await client.put(f"/events/{event_id}", json_data=body)
+                return json.dumps(result, indent=2)
+            except Exception as e:
+                logger.error(f"update_event failed: {e}")
+                raise ValueError(f"Failed to update event {event_id}: {e}")
 
-        NOTE: For recurring events, this deletes only this specific
-        occurrence, not the entire series.
+        @mcp.tool()
+        async def delete_event(event_id: int) -> str:
+            """
+            Delete an event.
 
-        Args:
-            event_id: The event ID to delete
+            NOTE: For recurring events, this deletes only this specific
+            occurrence, not the entire series.
 
-        Returns:
-            Confirmation message
-        """
-        try:
-            validate_id(event_id, "event_id")
-            await client.delete(f"/events/{event_id}")
-            return json.dumps({
-                "deleted": True,
-                "event_id": event_id,
-                "message": "Event deleted"
-            })
-        except Exception as e:
-            logger.error(f"delete_event failed: {e}")
-            raise ValueError(f"Failed to delete event {event_id}: {e}")
+            Args:
+                event_id: The event ID to delete
+
+            Returns:
+                Confirmation message
+            """
+            try:
+                validate_id(event_id, "event_id")
+                await client.delete(f"/events/{event_id}")
+                return json.dumps({
+                    "deleted": True,
+                    "event_id": event_id,
+                    "message": "Event deleted"
+                })
+            except Exception as e:
+                logger.error(f"delete_event failed: {e}")
+                raise ValueError(f"Failed to delete event {event_id}: {e}")

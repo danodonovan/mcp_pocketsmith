@@ -13,7 +13,9 @@ from pocketsmith_mcp.user_context import UserContext
 logger = get_logger("tools.transaction_accounts")
 
 
-def register_transaction_account_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserContext) -> None:
+def register_transaction_account_tools(
+    mcp: FastMCP, client: PocketSmithClient, user_ctx: UserContext, read_only: bool = False
+) -> None:
     """Register transaction account-related MCP tools."""
 
     @mcp.tool()
@@ -66,51 +68,53 @@ def register_transaction_account_tools(mcp: FastMCP, client: PocketSmithClient, 
             logger.error(f"get_transaction_account failed: {e}")
             raise ValueError(f"Failed to get transaction account {transaction_account_id}: {e}")
 
-    @mcp.tool()
-    async def update_transaction_account(
-        transaction_account_id: int,
-        name: str | None = None,
-        number: str | None = None,
-        starting_balance: float | None = None,
-        starting_balance_date: str | None = None,
-        is_net_worth: bool | None = None,
-    ) -> str:
-        """
-        Update a transaction account's settings.
+    if not read_only:
 
-        Args:
-            transaction_account_id: The transaction account ID
-            name: Account name
-            number: Account number (for reference only)
-            starting_balance: Starting balance amount
-            starting_balance_date: Starting balance date (YYYY-MM-DD)
-            is_net_worth: Whether to include in net worth calculations
+        @mcp.tool()
+        async def update_transaction_account(
+            transaction_account_id: int,
+            name: str | None = None,
+            number: str | None = None,
+            starting_balance: float | None = None,
+            starting_balance_date: str | None = None,
+            is_net_worth: bool | None = None,
+        ) -> str:
+            """
+            Update a transaction account's settings.
 
-        Returns:
-            JSON object with updated transaction account details
-        """
-        try:
-            validate_id(transaction_account_id, "transaction_account_id")
-            body: dict[str, Any] = {}
-            if name is not None:
-                body["name"] = name
-            if number is not None:
-                body["number"] = number
-            if starting_balance is not None:
-                body["starting_balance"] = starting_balance
-            if starting_balance_date is not None:
-                body["starting_balance_date"] = starting_balance_date
-            if is_net_worth is not None:
-                body["is_net_worth"] = is_net_worth
+            Args:
+                transaction_account_id: The transaction account ID
+                name: Account name
+                number: Account number (for reference only)
+                starting_balance: Starting balance amount
+                starting_balance_date: Starting balance date (YYYY-MM-DD)
+                is_net_worth: Whether to include in net worth calculations
 
-            if not body:
-                raise ValueError("At least one field must be provided for update")
+            Returns:
+                JSON object with updated transaction account details
+            """
+            try:
+                validate_id(transaction_account_id, "transaction_account_id")
+                body: dict[str, Any] = {}
+                if name is not None:
+                    body["name"] = name
+                if number is not None:
+                    body["number"] = number
+                if starting_balance is not None:
+                    body["starting_balance"] = starting_balance
+                if starting_balance_date is not None:
+                    body["starting_balance_date"] = starting_balance_date
+                if is_net_worth is not None:
+                    body["is_net_worth"] = is_net_worth
 
-            result = await client.put(
-                f"/transaction_accounts/{transaction_account_id}",
-                json_data=body
-            )
-            return json.dumps(result, indent=2)
-        except Exception as e:
-            logger.error(f"update_transaction_account failed: {e}")
-            raise ValueError(f"Failed to update transaction account {transaction_account_id}: {e}")
+                if not body:
+                    raise ValueError("At least one field must be provided for update")
+
+                result = await client.put(
+                    f"/transaction_accounts/{transaction_account_id}",
+                    json_data=body
+                )
+                return json.dumps(result, indent=2)
+            except Exception as e:
+                logger.error(f"update_transaction_account failed: {e}")
+                raise ValueError(f"Failed to update transaction account {transaction_account_id}: {e}")

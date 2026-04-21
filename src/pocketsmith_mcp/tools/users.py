@@ -12,7 +12,9 @@ from pocketsmith_mcp.user_context import UserContext
 logger = get_logger("tools.users")
 
 
-def register_user_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserContext) -> None:
+def register_user_tools(
+    mcp: FastMCP, client: PocketSmithClient, user_ctx: UserContext, read_only: bool = False
+) -> None:
     """Register user-related MCP tools."""
 
     @mcp.tool()
@@ -49,49 +51,51 @@ def register_user_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserC
             logger.error(f"get_user failed: {e}")
             raise ValueError(f"Failed to get user: {e}")
 
-    @mcp.tool()
-    async def update_user(
-        name: str | None = None,
-        email: str | None = None,
-        time_zone: str | None = None,
-        week_start_day: int | None = None,
-        base_currency_code: str | None = None,
-        always_show_base_currency: bool | None = None,
-    ) -> str:
-        """
-        Update the authenticated user's settings.
+    if not read_only:
 
-        Args:
-            name: Display name
-            email: Email address
-            time_zone: Time zone (e.g., "Pacific/Auckland")
-            week_start_day: Week start day (0=Sunday, 1=Monday, etc.)
-            base_currency_code: Base currency code (e.g., "USD", "NZD")
-            always_show_base_currency: Whether to always show amounts in base currency
+        @mcp.tool()
+        async def update_user(
+            name: str | None = None,
+            email: str | None = None,
+            time_zone: str | None = None,
+            week_start_day: int | None = None,
+            base_currency_code: str | None = None,
+            always_show_base_currency: bool | None = None,
+        ) -> str:
+            """
+            Update the authenticated user's settings.
 
-        Returns:
-            JSON object with updated user details
-        """
-        try:
-            body: dict[str, Any] = {}
-            if name is not None:
-                body["name"] = name
-            if email is not None:
-                body["email"] = email
-            if time_zone is not None:
-                body["time_zone"] = time_zone
-            if week_start_day is not None:
-                body["week_start_day"] = week_start_day
-            if base_currency_code is not None:
-                body["base_currency_code"] = base_currency_code
-            if always_show_base_currency is not None:
-                body["always_show_base_currency"] = always_show_base_currency
+            Args:
+                name: Display name
+                email: Email address
+                time_zone: Time zone (e.g., "Pacific/Auckland")
+                week_start_day: Week start day (0=Sunday, 1=Monday, etc.)
+                base_currency_code: Base currency code (e.g., "USD", "NZD")
+                always_show_base_currency: Whether to always show amounts in base currency
 
-            if not body:
-                raise ValueError("At least one field must be provided for update")
+            Returns:
+                JSON object with updated user details
+            """
+            try:
+                body: dict[str, Any] = {}
+                if name is not None:
+                    body["name"] = name
+                if email is not None:
+                    body["email"] = email
+                if time_zone is not None:
+                    body["time_zone"] = time_zone
+                if week_start_day is not None:
+                    body["week_start_day"] = week_start_day
+                if base_currency_code is not None:
+                    body["base_currency_code"] = base_currency_code
+                if always_show_base_currency is not None:
+                    body["always_show_base_currency"] = always_show_base_currency
 
-            result = await client.put(f"/users/{user_ctx.user_id}", json_data=body)
-            return json.dumps(result, indent=2)
-        except Exception as e:
-            logger.error(f"update_user failed: {e}")
-            raise ValueError(f"Failed to update user: {e}")
+                if not body:
+                    raise ValueError("At least one field must be provided for update")
+
+                result = await client.put(f"/users/{user_ctx.user_id}", json_data=body)
+                return json.dumps(result, indent=2)
+            except Exception as e:
+                logger.error(f"update_user failed: {e}")
+                raise ValueError(f"Failed to update user: {e}")

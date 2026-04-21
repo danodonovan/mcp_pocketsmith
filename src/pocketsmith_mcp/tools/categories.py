@@ -13,7 +13,9 @@ from pocketsmith_mcp.user_context import UserContext
 logger = get_logger("tools.categories")
 
 
-def register_category_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserContext) -> None:
+def register_category_tools(
+    mcp: FastMCP, client: PocketSmithClient, user_ctx: UserContext, read_only: bool = False
+) -> None:
     """Register category-related MCP tools."""
 
     @mcp.tool()
@@ -55,131 +57,133 @@ def register_category_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: U
             logger.error(f"get_category failed: {e}")
             raise ValueError(f"Failed to get category {category_id}: {e}")
 
-    @mcp.tool()
-    async def create_category(
-        title: str,
-        colour: str | None = None,
-        parent_id: int | None = None,
-        is_transfer: bool = False,
-        is_bill: bool = False,
-        roll_up: bool = False,
-        refund_behaviour: str | None = None,
-    ) -> str:
-        """
-        Create a new category.
+    if not read_only:
 
-        Args:
-            title: Category name
-            colour: Category color (hex, e.g., "#4CAF50")
-            parent_id: Parent category ID for hierarchy
-            is_transfer: Mark as transfer category
-            is_bill: Mark as bill category
-            roll_up: Roll up totals to parent in reports
-            refund_behaviour: How refunds are handled
-                             ("credits_are_refunds", "debits_are_refunds", "none")
+        @mcp.tool()
+        async def create_category(
+            title: str,
+            colour: str | None = None,
+            parent_id: int | None = None,
+            is_transfer: bool = False,
+            is_bill: bool = False,
+            roll_up: bool = False,
+            refund_behaviour: str | None = None,
+        ) -> str:
+            """
+            Create a new category.
 
-        Returns:
-            JSON object with created category
-        """
-        try:
-            body: dict[str, Any] = {
-                "title": title,
-                "is_transfer": is_transfer,
-                "is_bill": is_bill,
-                "roll_up": roll_up,
-            }
-            if colour is not None:
-                body["colour"] = colour
-            if parent_id is not None:
-                validate_id(parent_id, "parent_id")
-            if parent_id is not None:
-                body["parent_id"] = parent_id
-            if refund_behaviour is not None:
-                body["refund_behaviour"] = refund_behaviour
+            Args:
+                title: Category name
+                colour: Category color (hex, e.g., "#4CAF50")
+                parent_id: Parent category ID for hierarchy
+                is_transfer: Mark as transfer category
+                is_bill: Mark as bill category
+                roll_up: Roll up totals to parent in reports
+                refund_behaviour: How refunds are handled
+                                 ("credits_are_refunds", "debits_are_refunds", "none")
 
-            result = await client.post(f"/users/{user_ctx.user_id}/categories", json_data=body)
-            return json.dumps(result, indent=2)
-        except Exception as e:
-            logger.error(f"create_category failed: {e}")
-            raise ValueError(f"Failed to create category: {e}")
+            Returns:
+                JSON object with created category
+            """
+            try:
+                body: dict[str, Any] = {
+                    "title": title,
+                    "is_transfer": is_transfer,
+                    "is_bill": is_bill,
+                    "roll_up": roll_up,
+                }
+                if colour is not None:
+                    body["colour"] = colour
+                if parent_id is not None:
+                    validate_id(parent_id, "parent_id")
+                if parent_id is not None:
+                    body["parent_id"] = parent_id
+                if refund_behaviour is not None:
+                    body["refund_behaviour"] = refund_behaviour
 
-    @mcp.tool()
-    async def update_category(
-        category_id: int,
-        title: str | None = None,
-        colour: str | None = None,
-        parent_id: int | None = None,
-        is_transfer: bool | None = None,
-        is_bill: bool | None = None,
-        roll_up: bool | None = None,
-        refund_behaviour: str | None = None,
-    ) -> str:
-        """
-        Update a category.
+                result = await client.post(f"/users/{user_ctx.user_id}/categories", json_data=body)
+                return json.dumps(result, indent=2)
+            except Exception as e:
+                logger.error(f"create_category failed: {e}")
+                raise ValueError(f"Failed to create category: {e}")
 
-        Args:
-            category_id: The category ID to update
-            title: New category name
-            colour: New color (hex)
-            parent_id: New parent category ID
-            is_transfer: Update transfer status
-            is_bill: Update bill status
-            roll_up: Update roll-up setting
-            refund_behaviour: Update refund handling
+        @mcp.tool()
+        async def update_category(
+            category_id: int,
+            title: str | None = None,
+            colour: str | None = None,
+            parent_id: int | None = None,
+            is_transfer: bool | None = None,
+            is_bill: bool | None = None,
+            roll_up: bool | None = None,
+            refund_behaviour: str | None = None,
+        ) -> str:
+            """
+            Update a category.
 
-        Returns:
-            JSON object with updated category
-        """
-        try:
-            validate_id(category_id, "category_id")
-            body: dict[str, Any] = {}
-            if title is not None:
-                body["title"] = title
-            if colour is not None:
-                body["colour"] = colour
-            if parent_id is not None:
-                body["parent_id"] = parent_id
-            if is_transfer is not None:
-                body["is_transfer"] = is_transfer
-            if is_bill is not None:
-                body["is_bill"] = is_bill
-            if roll_up is not None:
-                body["roll_up"] = roll_up
-            if refund_behaviour is not None:
-                body["refund_behaviour"] = refund_behaviour
+            Args:
+                category_id: The category ID to update
+                title: New category name
+                colour: New color (hex)
+                parent_id: New parent category ID
+                is_transfer: Update transfer status
+                is_bill: Update bill status
+                roll_up: Update roll-up setting
+                refund_behaviour: Update refund handling
 
-            if not body:
-                raise ValueError("At least one field must be provided for update")
+            Returns:
+                JSON object with updated category
+            """
+            try:
+                validate_id(category_id, "category_id")
+                body: dict[str, Any] = {}
+                if title is not None:
+                    body["title"] = title
+                if colour is not None:
+                    body["colour"] = colour
+                if parent_id is not None:
+                    body["parent_id"] = parent_id
+                if is_transfer is not None:
+                    body["is_transfer"] = is_transfer
+                if is_bill is not None:
+                    body["is_bill"] = is_bill
+                if roll_up is not None:
+                    body["roll_up"] = roll_up
+                if refund_behaviour is not None:
+                    body["refund_behaviour"] = refund_behaviour
 
-            result = await client.put(f"/categories/{category_id}", json_data=body)
-            return json.dumps(result, indent=2)
-        except Exception as e:
-            logger.error(f"update_category failed: {e}")
-            raise ValueError(f"Failed to update category {category_id}: {e}")
+                if not body:
+                    raise ValueError("At least one field must be provided for update")
 
-    @mcp.tool()
-    async def delete_category(category_id: int) -> str:
-        """
-        Delete a category.
+                result = await client.put(f"/categories/{category_id}", json_data=body)
+                return json.dumps(result, indent=2)
+            except Exception as e:
+                logger.error(f"update_category failed: {e}")
+                raise ValueError(f"Failed to update category {category_id}: {e}")
 
-        WARNING: Deleting a category will NOT delete transactions in that
-        category, but they will become uncategorised. Child categories
-        will be moved to the parent of the deleted category.
+        @mcp.tool()
+        async def delete_category(category_id: int) -> str:
+            """
+            Delete a category.
 
-        Args:
-            category_id: The category ID to delete
+            WARNING: Deleting a category will NOT delete transactions in that
+            category, but they will become uncategorised. Child categories
+            will be moved to the parent of the deleted category.
 
-        Returns:
-            Confirmation message
-        """
-        try:
-            validate_id(category_id, "category_id")
-            await client.delete(f"/categories/{category_id}")
-            return json.dumps({
-                "deleted": True,
-                "category_id": category_id,
-                "message": "Category deleted. Transactions are now uncategorised."
-            })
-        except Exception as e:
-            logger.error(f"delete_category failed: {e}")
-            raise ValueError(f"Failed to delete category {category_id}: {e}")
+            Args:
+                category_id: The category ID to delete
+
+            Returns:
+                Confirmation message
+            """
+            try:
+                validate_id(category_id, "category_id")
+                await client.delete(f"/categories/{category_id}")
+                return json.dumps({
+                    "deleted": True,
+                    "category_id": category_id,
+                    "message": "Category deleted. Transactions are now uncategorised."
+                })
+            except Exception as e:
+                logger.error(f"delete_category failed: {e}")
+                raise ValueError(f"Failed to delete category {category_id}: {e}")

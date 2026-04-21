@@ -13,7 +13,9 @@ from pocketsmith_mcp.user_context import UserContext
 logger = get_logger("tools.attachments")
 
 
-def register_attachment_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserContext) -> None:
+def register_attachment_tools(
+    mcp: FastMCP, client: PocketSmithClient, user_ctx: UserContext, read_only: bool = False
+) -> None:
     """Register attachment-related MCP tools."""
 
     def _validate_file_upload(file_name: str, file_data: str) -> None:
@@ -77,90 +79,92 @@ def register_attachment_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx:
             logger.error(f"get_attachment failed: {e}")
             raise ValueError(f"Failed to get attachment {attachment_id}: {e}")
 
-    @mcp.tool()
-    async def create_attachment(
-        title: str,
-        file_name: str,
-        file_data: str,
-    ) -> str:
-        """
-        Create a new attachment by uploading a file.
+    if not read_only:
 
-        The file must be provided as base64-encoded data.
+        @mcp.tool()
+        async def create_attachment(
+            title: str,
+            file_name: str,
+            file_data: str,
+        ) -> str:
+            """
+            Create a new attachment by uploading a file.
 
-        Args:
-            title: Attachment title/description
-            file_name: Original file name with extension
-            file_data: Base64-encoded file content
+            The file must be provided as base64-encoded data.
 
-        Returns:
-            JSON object with created attachment
-        """
-        try:
-            _validate_file_upload(file_name, file_data)
-            body = {
-                "title": title,
-                "file_name": file_name,
-                "file_data": file_data,
-            }
-            result = await client.post(f"/users/{user_ctx.user_id}/attachments", json_data=body)
-            return json.dumps(result, indent=2)
-        except Exception as e:
-            logger.error(f"create_attachment failed: {e}")
-            raise ValueError(f"Failed to create attachment: {e}")
+            Args:
+                title: Attachment title/description
+                file_name: Original file name with extension
+                file_data: Base64-encoded file content
 
-    @mcp.tool()
-    async def update_attachment(
-        attachment_id: int,
-        title: str | None = None,
-    ) -> str:
-        """
-        Update an attachment's metadata.
+            Returns:
+                JSON object with created attachment
+            """
+            try:
+                _validate_file_upload(file_name, file_data)
+                body = {
+                    "title": title,
+                    "file_name": file_name,
+                    "file_data": file_data,
+                }
+                result = await client.post(f"/users/{user_ctx.user_id}/attachments", json_data=body)
+                return json.dumps(result, indent=2)
+            except Exception as e:
+                logger.error(f"create_attachment failed: {e}")
+                raise ValueError(f"Failed to create attachment: {e}")
 
-        Args:
-            attachment_id: The attachment ID to update
-            title: New title/description
+        @mcp.tool()
+        async def update_attachment(
+            attachment_id: int,
+            title: str | None = None,
+        ) -> str:
+            """
+            Update an attachment's metadata.
 
-        Returns:
-            JSON object with updated attachment
-        """
-        try:
-            validate_id(attachment_id, "attachment_id")
-            body = {}
-            if title is not None:
-                body["title"] = title
+            Args:
+                attachment_id: The attachment ID to update
+                title: New title/description
 
-            if not body:
-                raise ValueError("At least one field must be provided for update")
+            Returns:
+                JSON object with updated attachment
+            """
+            try:
+                validate_id(attachment_id, "attachment_id")
+                body = {}
+                if title is not None:
+                    body["title"] = title
 
-            result = await client.put(f"/attachments/{attachment_id}", json_data=body)
-            return json.dumps(result, indent=2)
-        except Exception as e:
-            logger.error(f"update_attachment failed: {e}")
-            raise ValueError(f"Failed to update attachment {attachment_id}: {e}")
+                if not body:
+                    raise ValueError("At least one field must be provided for update")
 
-    @mcp.tool()
-    async def delete_attachment(attachment_id: int) -> str:
-        """
-        Delete an attachment.
+                result = await client.put(f"/attachments/{attachment_id}", json_data=body)
+                return json.dumps(result, indent=2)
+            except Exception as e:
+                logger.error(f"update_attachment failed: {e}")
+                raise ValueError(f"Failed to update attachment {attachment_id}: {e}")
 
-        This will remove the attachment file and any associations
-        with transactions.
+        @mcp.tool()
+        async def delete_attachment(attachment_id: int) -> str:
+            """
+            Delete an attachment.
 
-        Args:
-            attachment_id: The attachment ID to delete
+            This will remove the attachment file and any associations
+            with transactions.
 
-        Returns:
-            Confirmation message
-        """
-        try:
-            validate_id(attachment_id, "attachment_id")
-            await client.delete(f"/attachments/{attachment_id}")
-            return json.dumps({
-                "deleted": True,
-                "attachment_id": attachment_id,
-                "message": "Attachment deleted"
-            })
-        except Exception as e:
-            logger.error(f"delete_attachment failed: {e}")
-            raise ValueError(f"Failed to delete attachment {attachment_id}: {e}")
+            Args:
+                attachment_id: The attachment ID to delete
+
+            Returns:
+                Confirmation message
+            """
+            try:
+                validate_id(attachment_id, "attachment_id")
+                await client.delete(f"/attachments/{attachment_id}")
+                return json.dumps({
+                    "deleted": True,
+                    "attachment_id": attachment_id,
+                    "message": "Attachment deleted"
+                })
+            except Exception as e:
+                logger.error(f"delete_attachment failed: {e}")
+                raise ValueError(f"Failed to delete attachment {attachment_id}: {e}")

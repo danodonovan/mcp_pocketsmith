@@ -69,7 +69,7 @@ def create_server(api_key: str | None = None) -> FastMCP:
 
     mcp = FastMCP("pocketsmith-mcp", lifespan=lifespan)
 
-    register_all_tools(mcp, client, user_ctx)
+    register_all_tools(mcp, client, user_ctx, read_only=config.read_only)
 
     logger.info("PocketSmith MCP server created successfully")
 

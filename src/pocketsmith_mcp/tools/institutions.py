@@ -12,7 +12,9 @@ from pocketsmith_mcp.user_context import UserContext
 logger = get_logger("tools.institutions")
 
 
-def register_institution_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserContext) -> None:
+def register_institution_tools(
+    mcp: FastMCP, client: PocketSmithClient, user_ctx: UserContext, read_only: bool = False
+) -> None:
     """Register institution-related MCP tools."""
 
     @mcp.tool()
@@ -53,91 +55,93 @@ def register_institution_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx
             logger.error(f"get_institution failed: {e}")
             raise ValueError(f"Failed to get institution {institution_id}: {e}")
 
-    @mcp.tool()
-    async def create_institution(
-        title: str,
-        currency_code: str,
-    ) -> str:
-        """
-        Create a new institution.
+    if not read_only:
 
-        Creates a financial institution that can be associated
-        with accounts. Useful for organizing accounts by bank.
+        @mcp.tool()
+        async def create_institution(
+            title: str,
+            currency_code: str,
+        ) -> str:
+            """
+            Create a new institution.
 
-        Args:
-            title: Institution name (e.g., "Chase Bank", "Barclays")
-            currency_code: Default currency code (e.g., "USD", "GBP")
+            Creates a financial institution that can be associated
+            with accounts. Useful for organizing accounts by bank.
 
-        Returns:
-            JSON object with created institution
-        """
-        try:
-            body = {
-                "title": title,
-                "currency_code": currency_code,
-            }
-            result = await client.post(f"/users/{user_ctx.user_id}/institutions", json_data=body)
-            return json.dumps(result, indent=2)
-        except Exception as e:
-            logger.error(f"create_institution failed: {e}")
-            raise ValueError(f"Failed to create institution: {e}")
+            Args:
+                title: Institution name (e.g., "Chase Bank", "Barclays")
+                currency_code: Default currency code (e.g., "USD", "GBP")
 
-    @mcp.tool()
-    async def update_institution(
-        institution_id: int,
-        title: str | None = None,
-        currency_code: str | None = None,
-    ) -> str:
-        """
-        Update an institution.
+            Returns:
+                JSON object with created institution
+            """
+            try:
+                body = {
+                    "title": title,
+                    "currency_code": currency_code,
+                }
+                result = await client.post(f"/users/{user_ctx.user_id}/institutions", json_data=body)
+                return json.dumps(result, indent=2)
+            except Exception as e:
+                logger.error(f"create_institution failed: {e}")
+                raise ValueError(f"Failed to create institution: {e}")
 
-        Args:
-            institution_id: The institution ID to update
-            title: New institution name
-            currency_code: New default currency code
+        @mcp.tool()
+        async def update_institution(
+            institution_id: int,
+            title: str | None = None,
+            currency_code: str | None = None,
+        ) -> str:
+            """
+            Update an institution.
 
-        Returns:
-            JSON object with updated institution
-        """
-        try:
-            validate_id(institution_id, "institution_id")
-            body = {}
-            if title is not None:
-                body["title"] = title
-            if currency_code is not None:
-                body["currency_code"] = currency_code
+            Args:
+                institution_id: The institution ID to update
+                title: New institution name
+                currency_code: New default currency code
 
-            if not body:
-                raise ValueError("At least one field must be provided for update")
+            Returns:
+                JSON object with updated institution
+            """
+            try:
+                validate_id(institution_id, "institution_id")
+                body = {}
+                if title is not None:
+                    body["title"] = title
+                if currency_code is not None:
+                    body["currency_code"] = currency_code
 
-            result = await client.put(f"/institutions/{institution_id}", json_data=body)
-            return json.dumps(result, indent=2)
-        except Exception as e:
-            logger.error(f"update_institution failed: {e}")
-            raise ValueError(f"Failed to update institution {institution_id}: {e}")
+                if not body:
+                    raise ValueError("At least one field must be provided for update")
 
-    @mcp.tool()
-    async def delete_institution(institution_id: int) -> str:
-        """
-        Delete an institution.
+                result = await client.put(f"/institutions/{institution_id}", json_data=body)
+                return json.dumps(result, indent=2)
+            except Exception as e:
+                logger.error(f"update_institution failed: {e}")
+                raise ValueError(f"Failed to update institution {institution_id}: {e}")
 
-        NOTE: This will remove the institution association from any
-        accounts, but will NOT delete the accounts themselves.
+        @mcp.tool()
+        async def delete_institution(institution_id: int) -> str:
+            """
+            Delete an institution.
 
-        Args:
-            institution_id: The institution ID to delete
+            NOTE: This will remove the institution association from any
+            accounts, but will NOT delete the accounts themselves.
 
-        Returns:
-            Confirmation message
-        """
-        try:
-            validate_id(institution_id, "institution_id")
-            await client.delete(f"/institutions/{institution_id}")
-            return json.dumps({
-                "deleted": True,
-                "institution_id": institution_id,
-                "message": "Institution deleted. Associated accounts are preserved."
-            })
-        except Exception as e:
-            logger.error(f"delete_institution failed: {e}")
-            raise ValueError(f"Failed to delete institution {institution_id}: {e}")
+            Args:
+                institution_id: The institution ID to delete
+
+            Returns:
+                Confirmation message
+            """
+            try:
+                validate_id(institution_id, "institution_id")
+                await client.delete(f"/institutions/{institution_id}")
+                return json.dumps({
+                    "deleted": True,
+                    "institution_id": institution_id,
+                    "message": "Institution deleted. Associated accounts are preserved."
+                })
+            except Exception as e:
+                logger.error(f"delete_institution failed: {e}")
+                raise ValueError(f"Failed to delete institution {institution_id}: {e}")

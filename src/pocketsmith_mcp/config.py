@@ -20,6 +20,7 @@ class Config:
     api_timeout: float = 30.0
     max_retries: int = 3
     rate_limit_per_minute: int = 60
+    read_only: bool = False
 
     # API settings
     base_url: str = "https://api.pocketsmith.com/v2"
@@ -64,6 +65,7 @@ class Config:
             api_timeout=float(os.getenv("API_TIMEOUT", "30")),
             max_retries=int(os.getenv("MAX_RETRIES", "3")),
             rate_limit_per_minute=int(os.getenv("RATE_LIMIT_PER_MINUTE", "60")),
+            read_only=os.getenv("READ_ONLY", "false").lower() == "true",
         )
 
     def validate(self) -> None:

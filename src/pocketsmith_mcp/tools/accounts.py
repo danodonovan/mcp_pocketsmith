@@ -13,7 +13,9 @@ from pocketsmith_mcp.user_context import UserContext
 logger = get_logger("tools.accounts")
 
 
-def register_account_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserContext) -> None:
+def register_account_tools(
+    mcp: FastMCP, client: PocketSmithClient, user_ctx: UserContext, read_only: bool = False
+) -> None:
     """Register account-related MCP tools."""
 
     @mcp.tool()
@@ -54,71 +56,73 @@ def register_account_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: Us
             logger.error(f"get_account failed: {e}")
             raise ValueError(f"Failed to get account {account_id}: {e}")
 
-    @mcp.tool()
-    async def update_account(
-        account_id: int,
-        title: str | None = None,
-        currency_code: str | None = None,
-        type: str | None = None,
-        is_net_worth: bool | None = None,
-    ) -> str:
-        """
-        Update an account's settings.
+    if not read_only:
 
-        Args:
-            account_id: The account ID
-            title: Account title/name
-            currency_code: Currency code (e.g., "USD", "GBP")
-            type: Account type (bank, credits, cash, loans, mortgage, stocks,
-                  vehicle, property, insurance, other_asset, other_liability)
-            is_net_worth: Whether to include in net worth calculations
+        @mcp.tool()
+        async def update_account(
+            account_id: int,
+            title: str | None = None,
+            currency_code: str | None = None,
+            type: str | None = None,
+            is_net_worth: bool | None = None,
+        ) -> str:
+            """
+            Update an account's settings.
 
-        Returns:
-            JSON object with updated account details
-        """
-        try:
-            validate_id(account_id, "account_id")
-            body: dict[str, Any] = {}
-            if title is not None:
-                body["title"] = title
-            if currency_code is not None:
-                body["currency_code"] = currency_code
-            if type is not None:
-                body["type"] = type
-            if is_net_worth is not None:
-                body["is_net_worth"] = is_net_worth
+            Args:
+                account_id: The account ID
+                title: Account title/name
+                currency_code: Currency code (e.g., "USD", "GBP")
+                type: Account type (bank, credits, cash, loans, mortgage, stocks,
+                      vehicle, property, insurance, other_asset, other_liability)
+                is_net_worth: Whether to include in net worth calculations
 
-            if not body:
-                raise ValueError("At least one field must be provided for update")
+            Returns:
+                JSON object with updated account details
+            """
+            try:
+                validate_id(account_id, "account_id")
+                body: dict[str, Any] = {}
+                if title is not None:
+                    body["title"] = title
+                if currency_code is not None:
+                    body["currency_code"] = currency_code
+                if type is not None:
+                    body["type"] = type
+                if is_net_worth is not None:
+                    body["is_net_worth"] = is_net_worth
 
-            result = await client.put(f"/accounts/{account_id}", json_data=body)
-            return json.dumps(result, indent=2)
-        except Exception as e:
-            logger.error(f"update_account failed: {e}")
-            raise ValueError(f"Failed to update account {account_id}: {e}")
+                if not body:
+                    raise ValueError("At least one field must be provided for update")
 
-    @mcp.tool()
-    async def delete_account(account_id: int) -> str:
-        """
-        Delete an account.
+                result = await client.put(f"/accounts/{account_id}", json_data=body)
+                return json.dumps(result, indent=2)
+            except Exception as e:
+                logger.error(f"update_account failed: {e}")
+                raise ValueError(f"Failed to update account {account_id}: {e}")
 
-        WARNING: This will permanently delete the account and all its
-        transaction accounts and transactions. This action cannot be undone.
+        @mcp.tool()
+        async def delete_account(account_id: int) -> str:
+            """
+            Delete an account.
 
-        Args:
-            account_id: The account ID to delete
+            WARNING: This will permanently delete the account and all its
+            transaction accounts and transactions. This action cannot be undone.
 
-        Returns:
-            Confirmation message
-        """
-        try:
-            validate_id(account_id, "account_id")
-            await client.delete(f"/accounts/{account_id}")
-            return json.dumps({
-                "deleted": True,
-                "account_id": account_id,
-                "message": "Account permanently deleted"
-            })
-        except Exception as e:
-            logger.error(f"delete_account failed: {e}")
-            raise ValueError(f"Failed to delete account {account_id}: {e}")
+            Args:
+                account_id: The account ID to delete
+
+            Returns:
+                Confirmation message
+            """
+            try:
+                validate_id(account_id, "account_id")
+                await client.delete(f"/accounts/{account_id}")
+                return json.dumps({
+                    "deleted": True,
+                    "account_id": account_id,
+                    "message": "Account permanently deleted"
+                })
+            except Exception as e:
+                logger.error(f"delete_account failed: {e}")
+                raise ValueError(f"Failed to delete account {account_id}: {e}")

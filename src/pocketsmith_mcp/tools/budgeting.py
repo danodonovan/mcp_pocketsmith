@@ -11,7 +11,9 @@ from pocketsmith_mcp.user_context import UserContext
 logger = get_logger("tools.budgeting")
 
 
-def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: UserContext) -> None:
+def register_budgeting_tools(
+    mcp: FastMCP, client: PocketSmithClient, user_ctx: UserContext, read_only: bool = False
+) -> None:
     """Register budgeting-related MCP tools."""
 
     @mcp.tool()
@@ -138,24 +140,26 @@ def register_budgeting_tools(mcp: FastMCP, client: PocketSmithClient, user_ctx: 
             logger.error(f"get_trend_analysis failed: {e}")
             raise ValueError(f"Failed to get trend analysis: {e}")
 
-    @mcp.tool()
-    async def clear_forecast_cache() -> str:
-        """
-        Clear the user's forecast cache.
+    if not read_only:
 
-        Forces a recalculation of the forecast on next access.
-        Useful when you've made significant changes to budget
-        events or scenarios.
+        @mcp.tool()
+        async def clear_forecast_cache() -> str:
+            """
+            Clear the user's forecast cache.
 
-        Returns:
-            Confirmation message
-        """
-        try:
-            await client.delete(f"/users/{user_ctx.user_id}/forecast_cache")
-            return json.dumps({
-                "success": True,
-                "message": "Forecast cache cleared. Forecast will be recalculated on next access."
-            })
-        except Exception as e:
-            logger.error(f"clear_forecast_cache failed: {e}")
-            raise ValueError(f"Failed to clear forecast cache: {e}")
+            Forces a recalculation of the forecast on next access.
+            Useful when you've made significant changes to budget
+            events or scenarios.
+
+            Returns:
+                Confirmation message
+            """
+            try:
+                await client.delete(f"/users/{user_ctx.user_id}/forecast_cache")
+                return json.dumps({
+                    "success": True,
+                    "message": "Forecast cache cleared. Forecast will be recalculated on next access."
+                })
+            except Exception as e:
+                logger.error(f"clear_forecast_cache failed: {e}")
+                raise ValueError(f"Failed to clear forecast cache: {e}")
