@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- `READ_ONLY` environment variable — when set to `true`, write tools (create/update/delete) are not registered with the MCP server at all, so the AI client never sees them. Read tools are unaffected. Useful when you want Claude to query your finances without any risk of mutation.
+
 ## [1.1.0] - 2026-04-06
 
 ### Security

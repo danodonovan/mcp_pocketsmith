@@ -13,8 +13,8 @@
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python 3.10+"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License: MIT"></a>
   <a href="https://pypi.org/project/pocketsmith-mcp/"><img src="https://img.shields.io/pypi/v/pocketsmith-mcp?color=blue" alt="PyPI"></a>
-  <img src="https://img.shields.io/badge/tests-180%20passed-brightgreen" alt="Tests: 180 passed">
-  <img src="https://img.shields.io/badge/coverage-86%25-brightgreen" alt="Coverage: 86%">
+  <img src="https://img.shields.io/badge/tests-204%20passed-brightgreen" alt="Tests: 204 passed">
+  <img src="https://img.shields.io/badge/coverage-89%25-brightgreen" alt="Coverage: 89%">
 </p>
 
 <p align="center">
@@ -29,7 +29,7 @@
 
 ## Features
 
-- **43 MCP Tools** - Complete coverage of PocketSmith API v2 endpoints
+- **44 MCP Tools** - Complete coverage of PocketSmith API v2 endpoints
 - **Production Ready** - Rate limiting, retry with exponential backoff, circuit breaker
 - **Universal Compatibility** - Works with Claude Desktop, Cursor, and any MCP-compatible client
 - **Type Safe** - Pydantic models for all API entities
@@ -334,10 +334,17 @@ The client includes production-grade resilience:
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `POCKETSMITH_API_KEY` | Yes | - | Your PocketSmith API key |
+| `READ_ONLY` | No | `false` | Restrict to read-only tools (see below) |
 | `DEBUG` | No | `false` | Enable debug logging |
 | `API_TIMEOUT` | No | `30` | Request timeout (seconds) |
 | `MAX_RETRIES` | No | `3` | Retry attempts for failed requests |
 | `RATE_LIMIT_PER_MINUTE` | No | `60` | API rate limit |
+
+## Read-Only Mode
+
+Set `READ_ONLY=true` to prevent any write operations. In this mode the server registers only the 23 read tools — the 21 write tools (create/update/delete) are never exposed to the AI client at all, so it cannot accidentally mutate your data.
+
+> **Why not just restrict at the API level?** A PocketSmith developer key grants full account access — there is no read-only scope. `READ_ONLY` mode enforces the restriction inside the MCP server before any tool is presented to the model.
 
 ---
 
